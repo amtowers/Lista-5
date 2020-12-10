@@ -1,0 +1,53 @@
+---
+title: "Teste de Hipótese - Lista 5"
+author: "Adelmar de Miranda Torres - 19/0072334"
+date: "10/12/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Contextualização
+
+Será utilizado o banco de dados do STF sobre as ações referentes à Covid-19 (DECISÕES COVID19), obtido no endereço eletrônico <https://transparencia.stf.jus.br/single/?appid=615fc495-804d-409f-9b08-fb436a455451&sheet=260e1cae-f9aa-44bb-bbc4-9d8b9f2244d5&opt=nointeraction&select=clearall> no dia 10/11/2020. A partir dele criou-se um banco de dados simplificado, incluindo duas novas variáveis: (1)Tempo de julgamento da ação (Tempo_decisao):[]; e (2) Resultado do julgamento (Decisao): Sucesso - 1; Insucesso - 0[], bem como excluindo as variáveis: Data de Autuação, Data Decisão e Em Tramitação. Ademais, a variável Assunto foi simplificada, mantendo-se apenas o ramo principal do Direito envolvido e classificando o assunto QUESTÕES DE ALTA COMPLEXIDADE, GRANDE IMPACTO E REPERCUSSÃO | COVID-19 como COVID-19. Por fim, entendeu-se que as ações que foram impactadas
+diretamente pela Covid-19 (Covid_19) seriam aquelas classificadas como COVID-19, enquanto que aquelas que forma impactadas indiretamente pela pandemia (Ind_Covid_19) seriam identificadas pelos diversos ramos do Direito.
+
+## As novas variáveis
+
+```{r,message=FALSE,warning=FALSE,echo=FALSE}
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(knitr)
+library(kableExtra)
+library(rmarkdown)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(readxl)
+library(tidyr)
+library(tibble)
+library(haven)
+library(stringr)
+library(infer)
+setwd("~/Métodos Quantitativos/Lista-5")
+STF_Covid_19 <- readxl::read_xlsx("~/Métodos Quantitativos/Lista-5/STF_Covid-19 - SIMPLIFICADO.xlsx")
+z <- glimpse(STF_Covid_19[,c(4,6)])
+summary(z)
+```
+
+## A Hipótese a ser testada
+
+Tendo em vista a urgência de solucionar as controvérsias que envolvem a pandemia da Covid-19, poder-se-ia esperar que a média do tempo de julgamento das ações que sejam diretamente vinculadas a pandemia (MEDIA A) seria menor do que a média do tempo de julgamento das ações indiretamente vinculadas à Covid-19 (MEDIA B. Neste sentido, constroi-se a hipótese nula como sendo:
+*H0: MEDIA A = MEDIA B; e, consequentemente,
+* H1: MEDIA A diferente da MEDIA B
+
+## O Gráfico da MEDIA A e da MEDIA B
+```{r,message=FALSE,warning=FALSE,echo=TRUE}
+STF_Covid_19 %>%
+  filter(!is.na(Assunto),!is.na(Tempo_decisao)) %>%
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%
+  group_by(Tempo_decisao,Covid_19) %>%  ggplot() + geom_density(aes(fill=Covid_19,x=Tempo_decisao),alpha=.8,color=NA) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(media=mean(Tempo_decisao,na.rm=T)),aes(color=Covid_19,xintercept=media)) + theme_minimal(base_size = 9) + xlab("Tempo de julgamento") + ggtitle("Covid-19: Tempo de julgamento em ações direta ou indiretamente vinculada à pandemia") + xlim(0,150) + geom_text(x=34,y=0.04,label="21 dias") + geom_text(x=85,y=0.05,label="70 dias") + geom_text(x=100,y=0.03,label="Total igual a 40 dias")
+```
