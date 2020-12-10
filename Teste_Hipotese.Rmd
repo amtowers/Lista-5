@@ -32,6 +32,7 @@ library(tibble)
 library(haven)
 library(stringr)
 library(infer)
+library(ggpubr)
 setwd("~/Métodos Quantitativos/Lista-5")
 STF_Covid_19 <- readxl::read_xlsx("~/Métodos Quantitativos/Lista-5/STF_Covid-19 - SIMPLIFICADO.xlsx")
 z <- glimpse(STF_Covid_19[,c(4,6)])
@@ -41,13 +42,64 @@ summary(z)
 ## A Hipótese a ser testada
 
 Tendo em vista a urgência de solucionar as controvérsias que envolvem a pandemia da Covid-19, poder-se-ia esperar que a média do tempo de julgamento das ações que sejam diretamente vinculadas a pandemia (MEDIA A) seria menor do que a média do tempo de julgamento das ações indiretamente vinculadas à Covid-19 (MEDIA B. Neste sentido, constroi-se a hipótese nula como sendo:
-*H0: MEDIA A = MEDIA B; e, consequentemente,
-* H1: MEDIA A diferente da MEDIA B
+
+**H0: MEDIA A = MEDIA B**; e, consequentemente,
+
+**H1: MEDIA A diferente da MEDIA B**
+
+A variável dependente é o tempo de julgamento e a variável independente é se a ação julgada pelo STF é direta ou indiretamente vinculada à pandemia.
+
+Em síntese, pretende-se testar se a maior vinculação da ação à Covid-19 promove alteração no tempo de julgamento do STF.
 
 ## O Gráfico da MEDIA A e da MEDIA B
 ```{r,message=FALSE,warning=FALSE,echo=TRUE}
-STF_Covid_19 %>%
-  filter(!is.na(Assunto),!is.na(Tempo_decisao)) %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%
-  group_by(Tempo_decisao,Covid_19) %>%  ggplot() + geom_density(aes(fill=Covid_19,x=Tempo_decisao),alpha=.8,color=NA) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(media=mean(Tempo_decisao,na.rm=T)),aes(color=Covid_19,xintercept=media)) + theme_minimal(base_size = 9) + xlab("Tempo de julgamento") + ggtitle("Covid-19: Tempo de julgamento em ações direta ou indiretamente vinculada à pandemia") + xlim(0,150) + geom_text(x=34,y=0.04,label="21 dias") + geom_text(x=85,y=0.05,label="70 dias") + geom_text(x=100,y=0.03,label="Total igual a 40 dias")
+STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%  ggplot() + geom_density(aes(fill=Covid_19,x=Tempo_decisao),alpha=.8,color=NA) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(media=mean(Tempo_decisao,na.rm=T)),size=2,aes(color=Covid_19,xintercept=media)) + theme_minimal(base_size = 9) + xlab("Tempo de julgamento") + ggtitle("Covid-19: Tempo de julgamento em ações direta ou indiretamente vinculada à pandemia") + xlim(0,150) + geom_text(x=34,y=0.04,label="21 dias") + geom_text(x=85,y=0.05,label="70 dias") + geom_text(x=100,y=0.03,label="Total igual a 40 dias")
 ```
+
+## Construção dos intervalos
+
+```{r}
+STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%
+  group_by(Tempo_decisao,Covid_19) %>% ggplot(aes(fill=Covid_19,x=Tempo_decisao,color=Covid_19,y=Covid_19)) + stat_summary(fun=mean, geom="point") + stat_summary(fun.data=, geom="errorbar", width=0.2) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(Tempo_decisao=mean(Tempo_decisao,na.rm = T)),
+size=2,aes(xintercept=Tempo_decisao,color=Covid_19)) + theme(legend.position = "none") + theme_minimal()
+```
+
+## Teste t
+
+```{r}
+t_test_results <- STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>% 
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%  t_test(formula = Tempo_decisao ~ Covid_19,
+order = c("Covid_19", "Ind_Covid_19"))
+t_test_results
+```
+
+## Gráfico 1
+
+```{r}
+media_acoes <- STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19"))%>%
+dplyr::filter(Covid_19 %in% c("Covid_19","Ind_Covid_19")) %>%
+specify(Tempo_decisao ~ Covid_19) %>%
+calculate(stat = "t", order = c("Covid_19","Ind_Covid_19"))
+distribuicao_teorica <- STF_Covid_19 %>% filter(!is.na(Assunto),!is.na(Tempo_decisao)) %>%
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19"))%>% 
+specify(Tempo_decisao ~ Covid_19) %>%
+hypothesize(null = "independence") %>%
+calculate(stat = "z", order = c("Covid_19","Ind_Covid_19"))
+distribuicao_teorica %>%
+visualize(method = "theoretical") +
+shade_p_value(media_acoes,direction = "two-sided") +
+labs(title = "Distribuição teórica",x="Estatística t",y="Densidade")
+```
+
+## Gráfico 2
+
+```{r}
+STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>% 
+ggpubr::ggerrorplot(x = "Covid_19", y = "Tempo_decisao",color = "Covid_19",position = position_dodge2(0.9)) +
+stat_compare_means(method = "t.test") + theme(legend.position = "right") +scale_y_continuous(limits = c(0,100))
+```
+
