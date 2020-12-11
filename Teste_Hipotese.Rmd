@@ -33,6 +33,7 @@ library(haven)
 library(stringr)
 library(infer)
 library(ggpubr)
+library(effectsize)
 setwd("~/Métodos Quantitativos/Lista-5")
 STF_Covid_19 <- readxl::read_xlsx("~/Métodos Quantitativos/Lista-5/STF_Covid-19 - SIMPLIFICADO.xlsx")
 z <- glimpse(STF_Covid_19[,c(4,6)])
@@ -61,8 +62,7 @@ STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
 
 ```{r}
 STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%
-  group_by(Tempo_decisao,Covid_19) %>% ggplot(aes(fill=Covid_19,x=Tempo_decisao,color=Covid_19,y=Covid_19)) + stat_summary(fun=mean, geom="point") + stat_summary(fun.data=, geom="errorbar", width=0.2) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(Tempo_decisao=mean(Tempo_decisao,na.rm = T)),
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19"))%>% ggplot(aes(fill=Covid_19,x=Tempo_decisao,color=Covid_19,y=Covid_19)) + stat_summary(fun=mean, geom="point") + stat_summary(fun.data=mean_ci, geom="errorbar", width=0.3) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(Tempo_decisao=mean(Tempo_decisao,na.rm = T)),
 size=2,aes(xintercept=Tempo_decisao,color=Covid_19)) + theme(legend.position = "none") + theme_minimal()
 ```
 
@@ -87,7 +87,7 @@ distribuicao_teorica <- STF_Covid_19 %>% filter(!is.na(Assunto),!is.na(Tempo_dec
   mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19"))%>% 
 specify(Tempo_decisao ~ Covid_19) %>%
 hypothesize(null = "independence") %>%
-calculate(stat = "z", order = c("Covid_19","Ind_Covid_19"))
+calculate(stat = "t", order = c("Covid_19","Ind_Covid_19"))
 distribuicao_teorica %>%
 visualize(method = "theoretical") +
 shade_p_value(media_acoes,direction = "two-sided") +
@@ -101,5 +101,12 @@ STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
   mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>% 
 ggpubr::ggerrorplot(x = "Covid_19", y = "Tempo_decisao",color = "Covid_19",position = position_dodge2(0.9)) +
 stat_compare_means(method = "t.test") + theme(legend.position = "right") +scale_y_continuous(limits = c(0,100))
+```
+
+## Efeito tamanho
+
+```{r}
+STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
+  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>% effectsize::cohens_d("Tempo_decisao","Covid_19",data=.)
 ```
 
