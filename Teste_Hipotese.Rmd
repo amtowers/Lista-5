@@ -1,6 +1,6 @@
 ---
-title: "Teste de Hipótese - Lista 5"
-author: "Adelmar de Miranda Torres - 19/0072334"
+title: "**Teste de Hipótese - Lista 5**"
+author: "**Adelmar de Miranda Torres - 19/0072334**"
 date: "10/12/2020"
 output: pdf_document
 ---
@@ -11,8 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Contextualização
 
-Será utilizado o banco de dados do STF sobre as ações referentes à Covid-19 (DECISÕES COVID19), obtido no endereço eletrônico <https://transparencia.stf.jus.br/single/?appid=615fc495-804d-409f-9b08-fb436a455451&sheet=260e1cae-f9aa-44bb-bbc4-9d8b9f2244d5&opt=nointeraction&select=clearall> no dia 10/11/2020. A partir dele criou-se um banco de dados simplificado, incluindo duas novas variáveis: (1)Tempo de julgamento da ação (Tempo_decisao):[]; e (2) Resultado do julgamento (Decisao): Sucesso - 1; Insucesso - 0[], bem como excluindo as variáveis: Data de Autuação, Data Decisão e Em Tramitação. Ademais, a variável Assunto foi simplificada, mantendo-se apenas o ramo principal do Direito envolvido e classificando o assunto QUESTÕES DE ALTA COMPLEXIDADE, GRANDE IMPACTO E REPERCUSSÃO | COVID-19 como COVID-19. Por fim, entendeu-se que as ações que foram impactadas
-diretamente pela Covid-19 (Covid_19) seriam aquelas classificadas como COVID-19, enquanto que aquelas que forma impactadas indiretamente pela pandemia (Ind_Covid_19) seriam identificadas pelos diversos ramos do Direito.
+Será utilizado o banco de dados do STF sobre as ações referentes à Covid-19 (DECISÕES COVID19), obtido no endereço eletrônico [Estatística STF](https://transparencia.stf.jus.br/single/?appid=615fc495-804d-409f-9b08-fb436a455451&sheet=260e1cae-f9aa-44bb-bbc4-9d8b9f2244d5&opt=nointeraction&select=clearall/) no dia 10/11/2020. A partir dele criou-se um banco de dados simplificado, incluindo duas novas variáveis: (1)Tempo de julgamento da ação (Tempo_decisao); e (2) Resultado do julgamento (Decisao): Sucesso - 1; Insucesso - 0, bem como excluindo as variáveis: Data de Autuação, Data Decisão e Em Tramitação. Ademais, a variável Assunto foi simplificada, mantendo-se apenas o ramo principal do Direito envolvido e classificando o assunto QUESTÕES DE ALTA COMPLEXIDADE, GRANDE IMPACTO E REPERCUSSÃO | COVID-19 como COVID-19. Por fim, entendeu-se que as ações que foram impactadas diretamente pela Covid-19 (Covid_19) seriam aquelas classificadas como COVID-19, enquanto que aquelas que foram impactadas indiretamente pela pandemia (Ind_Covid_19) seriam identificadas pelos diversos ramos do Direito.
 
 ## As novas variáveis
 
@@ -42,71 +41,92 @@ summary(z)
 
 ## A Hipótese a ser testada
 
-Tendo em vista a urgência de solucionar as controvérsias que envolvem a pandemia da Covid-19, poder-se-ia esperar que a média do tempo de julgamento das ações que sejam diretamente vinculadas a pandemia (MEDIA A) seria menor do que a média do tempo de julgamento das ações indiretamente vinculadas à Covid-19 (MEDIA B. Neste sentido, constroi-se a hipótese nula como sendo:
+Tendo em vista a urgência de solucionar as controvérsias que envolvem a pandemia da Covid-19, poder-se-ia esperar que o tempo médio de julgamento das ações vinculadas à Covid-19 que foram bem sucedidas/deferidas (MEDIA A) seria igual ao tempo médio de julgamento das ações indeferidas pelo STF (MEDIA B). Neste sentido, constroi-se a hipótese nula como sendo:
 
 **H0: MEDIA A = MEDIA B**; e, consequentemente,
 
 **H1: MEDIA A diferente da MEDIA B**
 
-A variável dependente é o tempo de julgamento e a variável independente é se a ação julgada pelo STF é direta ou indiretamente vinculada à pandemia.
+**A variável dependente é o tempo de julgamento e a variável independente é se a ação vinculada à pandemia e julgada pelo STF é deferida ou indeferida por esta corte.**
 
-Em síntese, pretende-se testar se a maior vinculação da ação à Covid-19 promove alteração no tempo de julgamento do STF.
+**Em síntese, pretende-se testar se o fato da ação ser deferida ou indeferida pela corte constitucional promove alteração no tempo de julgamento do STF.**
 
 ## O Gráfico da MEDIA A e da MEDIA B
 ```{r,message=FALSE,warning=FALSE,echo=TRUE}
-STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%  ggplot() + geom_density(aes(fill=Covid_19,x=Tempo_decisao),alpha=.8,color=NA) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(media=mean(Tempo_decisao,na.rm=T)),size=2,aes(color=Covid_19,xintercept=media)) + theme_minimal(base_size = 9) + xlab("Tempo de julgamento") + ggtitle("Covid-19: Tempo de julgamento em ações direta ou indiretamente vinculada à pandemia") + xlim(0,150) + geom_text(x=34,y=0.04,label="21 dias") + geom_text(x=85,y=0.05,label="70 dias") + geom_text(x=100,y=0.03,label="Total igual a 40 dias")
+STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>%
+  mutate(Resultado_julgamento = str_detect(Decisao,"1"),Resultado_julgamento = case_when(Resultado_julgamento==TRUE~"Sucesso",Resultado_julgamento==FALSE~"Insucesso")) %>%
+  ggplot() + geom_density(aes(fill=Resultado_julgamento,x=Tempo_decisao),alpha=.8,color=NA) +
+  geom_vline(data=. %>% group_by(Resultado_julgamento) %>% summarise(media=mean(Tempo_decisao,na.rm=T)),size=2,aes(color=Resultado_julgamento,xintercept=media)) +
+  theme_minimal(base_size = 9) + xlab("Tempo de julgamento") +
+  ggtitle("Covid-19: Tempo de julgamento em função do sucesso ou nsucesso da ação vinculada à pandemia") +
+  xlim(0,150) + geom_text(x=35,y=0.04,label="34 dias") + geom_text(x=85,y=0.05,label="75 dias") +
+  geom_text(x=100,y=0.03,label="Total igual a 40 dias")
 ```
 
 ## Construção dos intervalos
 
 ```{r}
-STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19"))%>% ggplot(aes(fill=Covid_19,x=Tempo_decisao,color=Covid_19,y=Covid_19)) + stat_summary(fun=mean, geom="point") + stat_summary(fun.data=mean_ci, geom="errorbar", width=0.3) + geom_vline(data=. %>% group_by(Covid_19) %>% summarise(Tempo_decisao=mean(Tempo_decisao,na.rm = T)),
-size=2,aes(xintercept=Tempo_decisao,color=Covid_19)) + theme(legend.position = "none") + theme_minimal()
+STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>% 
+  mutate(Resultado_julgamento = str_detect(Decisao,"1"),Resultado_julgamento = case_when(Resultado_julgamento==TRUE~"Sucesso",Resultado_julgamento==FALSE~"Insucesso")) %>% ggplot(aes(fill=Resultado_julgamento,x=Tempo_decisao,color=Resultado_julgamento,y=Resultado_julgamento)) +
+  stat_summary(fun=mean, geom="point") + stat_summary(fun.data=mean_ci, geom="errorbar", width=0.3) +
+  geom_vline(data=. %>% group_by(Resultado_julgamento) %>% summarise(Tempo_decisao=mean(Tempo_decisao,na.rm = T)),
+size=2,aes(xintercept=Tempo_decisao,color=Resultado_julgamento)) + theme(legend.position = "none") +
+  theme_minimal()
 ```
 
 ## Teste t
 
 ```{r}
-t_test_results <- STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>% 
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>%  t_test(formula = Tempo_decisao ~ Covid_19,
-order = c("Covid_19", "Ind_Covid_19"))
+t_test_results <- STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>% 
+  mutate(Resultado_julgamento = str_detect(Decisao,"1"),Resultado_julgamento = case_when(Resultado_julgamento==TRUE~"Sucesso",Resultado_julgamento==FALSE~"Insucesso")) %>%
+  t_test(formula = Tempo_decisao ~ Resultado_julgamento,
+order = c("Sucesso", "Insucesso"))
 t_test_results
 ```
 
 ## Gráfico 1
 
 ```{r}
-media_acoes <- STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19"))%>%
-dplyr::filter(Covid_19 %in% c("Covid_19","Ind_Covid_19")) %>%
-specify(Tempo_decisao ~ Covid_19) %>%
-calculate(stat = "t", order = c("Covid_19","Ind_Covid_19"))
-distribuicao_teorica <- STF_Covid_19 %>% filter(!is.na(Assunto),!is.na(Tempo_decisao)) %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19"))%>% 
-specify(Tempo_decisao ~ Covid_19) %>%
+media_acoes <- STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>%
+  mutate(Resultado_julgamento = str_detect(Decisao,"1"),Resultado_julgamento = case_when(Resultado_julgamento==TRUE~"Sucesso",Resultado_julgamento==FALSE~"Insucesso")) %>%
+dplyr::filter(Resultado_julgamento %in% c("Sucesso","Insucesso")) %>%
+specify(Tempo_decisao ~ Resultado_julgamento) %>%
+calculate(stat = "t", order = c("Sucesso","Insucesso"))
+distribuicao_teorica <- STF_Covid_19 %>% filter(!is.na(Decisao),!is.na(Tempo_decisao)) %>%
+  mutate(Resultado_julgamento = str_detect(Decisao,"1"),Resultado_julgamento = case_when(Resultado_julgamento==TRUE~"Sucesso",Resultado_julgamento==FALSE~"Insucesso")) %>% 
+specify(Tempo_decisao ~ Resultado_julgamento) %>%
 hypothesize(null = "independence") %>%
-calculate(stat = "t", order = c("Covid_19","Ind_Covid_19"))
+calculate(stat = "t", order = c("Sucesso","Insucesso"))
 distribuicao_teorica %>%
 visualize(method = "theoretical") +
 shade_p_value(media_acoes,direction = "two-sided") +
 labs(title = "Distribuição teórica",x="Estatística t",y="Densidade")
 ```
 
-## Gráfico 2
+## Gráfico 2 - ggpubr
 
 ```{r}
-STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>% 
-ggpubr::ggerrorplot(x = "Covid_19", y = "Tempo_decisao",color = "Covid_19",position = position_dodge2(0.9)) +
-stat_compare_means(method = "t.test") + theme(legend.position = "right") +scale_y_continuous(limits = c(0,100))
+STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>%
+  mutate(Resultado_julgamento = str_detect(Decisao,"1"),Resultado_julgamento = case_when(Resultado_julgamento==TRUE~"Sucesso",Resultado_julgamento==FALSE~"Insucesso")) %>% 
+ggpubr::ggerrorplot(x = "Resultado_julgamento", y = "Tempo_decisao",
+                    color = "Resultado_julgamento",position = position_dodge2(0.9)) +
+stat_compare_means(method = "t.test") + theme(legend.position = "right")
 ```
 
-## Efeito tamanho
+## Efeito tamanho (*effect-size*)
 
 ```{r}
-STF_Covid_19 %>% select(Assunto,Tempo_decisao) %>% drop_na() %>%
-  mutate(Covid_19 = str_detect(Assunto,"COVID-19"),Covid_19 = case_when(Covid_19==TRUE~"Covid_19",Covid_19==FALSE~"Ind_Covid_19")) %>% effectsize::cohens_d("Tempo_decisao","Covid_19",data=.)
+STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>%
+  mutate(Resultado_julgamento = str_detect(Decisao,"1"),
+         Resultado_julgamento = case_when(Resultado_julgamento==TRUE~"Sucesso",
+         Resultado_julgamento==FALSE~"Insucesso")) %>% 
+  effectsize::cohens_d("Tempo_decisao","Resulatado_julgamento",data=.)
 ```
+
+## Conclusões: Resultado do Teste t e do *effect size*
+
+Em razão do teste t, encontrou-se um p-valor de 0.0000048 < 0.05. **Esse valor indica que não se tem evidência nos dados que demonstre identidade significativa entre a MEDIA A e a MEDIA B. Ou seja, rejeita-se a hipótese H0 de que o tempo médio de julgamento das ações relativas à Covid-19 deferidas (Sucesso) seria igual ao das ações indeferidas (Insucesso).**
+
+Por outro lado, dado que o poder de um teste  estatístico	 corresponde	 à	probabilidade	 de	 rejeitar	 corretamente	 a	 hipótese	 nula, é necessário, além do exame do nível de significância e, portanto, do p-valor, investigar o	 tamanho	 do	 efeito (TDE): *effect size*. **Pode-se definir o TDE como sendo o	“grau	em	que	a	hipótese	nula	é	falsa”	ou,	ainda, o	 “grau	 em	 que	 um	 fenómeno	 está	 presente	 na	população”.** O d	de	Cohen	é	uma	medida	comum	do	TDE	 para	 testes	t com	 grupos	 independentes. Costuma-se classificar os	 d de Cohen em	 pequeno (0.20 a 0.49), moderado (0.50 a 0.79) e	grande (0.80 a 1.29). **O d encontrado foi de 0.26, ou seja, um d pequeno. Esse resultado significa que a diferenças entre as médias foi de aproximadamente 1/4 de desvio-padrão. Pode-se interpretar um d de 0,26 da seguinte maneira (interpolação linear da Tabela 4 do texto citado na nota de rodapé 1): (a) A probabilidade de uma ação deferida sobre a Covid-19 ter um tampo médio de julgamento superior a uma indeferida é de 60,24%; e (b) 57,28% das ações deferidas (Sucesso) têm tempo de julgamento superior ao das ações indeferidas (Insucesso). Parece que o achado não é assim tão convincente.** ^[ESPÍRITO SANTO, Helena; DANIEL, Fernanda. Calcular E Apresentar Tamanhos Do Efeito EM Trabalhos Científicos (1): As Limitações Do P< 0, 05 Na Análise De Diferenças De Médias De Dois Grupos (Calculating and Reporting Effect Sizes on Scientific Papers (1): P< 0.05 Limitations in the Analysis of Mean Differences of Two Groups). Revista Portuguesa de Investigação Comportamental e Social, v. 1, n. 1, p. 3-16, 2017.] 	 
+
 
