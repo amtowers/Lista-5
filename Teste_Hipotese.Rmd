@@ -33,8 +33,10 @@ library(stringr)
 library(infer)
 library(ggpubr)
 library(effectsize)
+library(sjPlot)
+library(GGally)
 setwd("~/Métodos Quantitativos/Lista-5")
-STF_Covid_19 <- readxl::read_xlsx("~/Métodos Quantitativos/Lista-5/STF_Covid-19 - SIMPLIFICADO.xlsx")
+STF_Covid_19 <- readxl::read_xlsx("~/Métodos Quantitativos/Lista-5/STF_Covid-19 - SIMPLIFICADO 1.xlsx")
 z <- glimpse(STF_Covid_19[,c(4,6)])
 summary(z)
 ```
@@ -62,6 +64,17 @@ STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>%
   xlim(0,150) + geom_text(x=35,y=0.04,label="34 dias") + geom_text(x=85,y=0.05,label="75 dias") +
   geom_text(x=100,y=0.03,label="Total igual a 40 dias")
 ```
+
+## Grau de associação entre as variáveis tempo de julgamento e decisão: regressão linear simples
+
+```{r}
+(modelo_regress <- STF_Covid_19 %>% select(Decisao,Tempo_decisao) %>% drop_na() %>% lm(Tempo_decisao~Decisao,data = .))
+summary(modelo_regress)
+sjPlot::plot_model(modelo_regress)
+```
+
+Em que pese os coeficientes serem significativos, ou seja, podem ser considerados diferentes de zero, o R2 é bastante pequeno. O tempo de julgamento médio das ações indeferidas é de aproximadamente 34 dias (b0=Intercept) enquanto das deferidas é de aproximadamente 75 dias (b0+b1=Intercept+Decisao[1]).
+
 
 ## Construção dos intervalos
 
